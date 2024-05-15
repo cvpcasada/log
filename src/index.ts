@@ -1,35 +1,9 @@
-import {
-  log,
-  getDefaultLevel,
-  setDefaultLevel,
-  createHandler,
-  defaultLevel,
-  type LogMethod,
-} from "./common.js";
+import { log, createHandler, type LogMethod, STORAGE_KEY } from "./common.js";
 import chalk, { type ChalkInstance } from "chalk";
 import isUnicodeSupported from "is-unicode-supported";
+import * as Symbols from "./symbols.js";
 
-const main = {
-  info: "ℹ",
-  success: "✔",
-  warn: "⚠",
-  error: "✖",
-  log: "•", 
-  trace: "↪",
-  debug: "𓆣",
-} as { readonly [key in LogMethod]: string };
-
-const fallback = {
-  info: "i",
-  success: "√",
-  warn: "‼",
-  error: "×",
-  log: "•",
-  trace: "»",
-  debug: "Þ",
-} as { readonly [key in LogMethod]: string };
-
-const logSymbols = isUnicodeSupported() ? main : fallback;
+const logSymbols = isUnicodeSupported() ? Symbols.main : Symbols.fallback;
 
 const color = {
   info: chalk.blue,
@@ -45,13 +19,13 @@ function createLogger(
   name: string,
   options: {
     level?: LogMethod;
-    applyCallback?: (
+    tap?: (
       method: LogMethod,
       args: Parameters<(typeof console)[LogMethod]>
     ) => void;
     showLevel?: boolean;
   } = {
-    level: defaultLevel,
+    level: getDefaultLevel(),
     showLevel: true,
   }
 ) {
@@ -62,8 +36,22 @@ function createLogger(
 
   return new Proxy(
     console,
-    createHandler(options.level, bindArgs, options.applyCallback)
+    createHandler(options.level, bindArgs, options.tap, ls)
   );
+}
+
+const store: Record<string, string> = {};
+const ls = {
+  getItem: (key: string): string | null => store[key] ?? null,
+  setItem: (key: string, value: string) => (store[key] = value),
+};
+
+function getDefaultLevel(): LogMethod {
+  return (ls.getItem(STORAGE_KEY) ?? "trace") as LogMethod;
+}
+
+function setDefaultLevel(level: LogMethod) {
+  ls.setItem(STORAGE_KEY, level);
 }
 
 export { createLogger, log, getDefaultLevel, setDefaultLevel };

@@ -16,3 +16,4 @@ export default defineConfig({
   outDir: env === "production" ? "dist" : "lib",
   entry: ["src/index.ts", 'src/browser.ts'],
 });
+

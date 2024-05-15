@@ -1,41 +1,40 @@
 const noop = () => {};
 
-const logMethods = ["trace", "debug", "info", "log", "warn", "error"] as const;
+const logMethods = ["trace", "debug", "log", "info", "warn", "error"] as const;
 
 const STORAGE_KEY = "loglevel";
 
-export let defaultLevel: LogMethod = "trace";
-try {
-  defaultLevel = localStorage.getItem(STORAGE_KEY) as LogMethod;
-} catch {}
-
 export type LogMethod = (typeof logMethods)[number];
 
-export function createHandler(
+function createHandler(
   level?: LogMethod,
   applyBind?: (level: LogMethod) => Parameters<(typeof console)[LogMethod]>,
-  applyCallback?: (
+  tap?: (
     method: LogMethod,
     args: Parameters<(typeof console)[LogMethod]>
-  ) => void
+  ) => void,
+  ls = {
+    getItem: (key: string): string | null => null,
+    setItem: (key: string, value: string) => {},
+  }
 ): ProxyHandler<Console> {
-  level = level ?? getDefaultLevel();
+  let loglevel = (level ?? ls.getItem(STORAGE_KEY) ?? "trace") as LogMethod;
 
   return {
     get: (target, prop, receiver) => {
       let index = logMethods.indexOf(prop as LogMethod);
 
-      if (index >= logMethods.indexOf(level)) {
+      if (index >= logMethods.indexOf(loglevel)) {
         let method = Reflect.get(target, prop, receiver);
 
         if (applyBind) {
           method = method.bind(undefined, ...applyBind(prop as LogMethod));
         }
 
-        if (applyCallback) {
+        if (tap) {
           return new Proxy(method, {
             apply: (target, thisArg, args) => {
-              applyCallback(prop as LogMethod, args);
+              tap(prop as LogMethod, args);
               return Reflect.apply(target, thisArg, args);
             },
           });
@@ -49,19 +48,6 @@ export function createHandler(
   };
 }
 
-export const log = new Proxy(console, createHandler());
+const log = new Proxy(console, createHandler());
 
-export function setDefaultLevel(level: LogMethod) {
-  defaultLevel = level;
-  try {
-    localStorage.setItem(STORAGE_KEY, level);
-  } catch {}
-}
-
-export function getDefaultLevel() {
-  try {
-    return (localStorage.getItem(STORAGE_KEY) as LogMethod) ?? defaultLevel;
-  } catch {
-    return defaultLevel;
-  }
-}
+export { createHandler, log, STORAGE_KEY };

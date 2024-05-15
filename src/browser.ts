@@ -1,12 +1,5 @@
-import {
-  log,
-  getDefaultLevel,
-  setDefaultLevel,
-  createHandler,
-  defaultLevel,
-  type LogMethod,
-} from "./common.js";
-
+import { log, createHandler, type LogMethod, STORAGE_KEY } from "./common.js";
+import { main as symbols } from "./symbols.js";
 const ColorMap = {
   trace: "#95bdb7",
   debug: "#ad95b8",
@@ -16,27 +9,17 @@ const ColorMap = {
   error: "#bf6c69",
 } as { readonly [key in LogMethod]: string };
 
-const symbols = {
-  info: "ℹ",
-  success: "✔",
-  warn: "⚠",
-  error: "✖",
-  log: "•",
-  trace: "↪",
-  debug: "𓆣",
-} as { readonly [key in LogMethod]: string };
-
 function createLogger(
   name: string,
   options: {
     level?: LogMethod;
-    applyCallback?: (
+    tap?: (
       method: LogMethod,
       args: Parameters<(typeof console)[LogMethod]>
     ) => void;
     showLevel?: boolean;
   } = {
-    level: defaultLevel,
+    level: getDefaultLevel(),
     showLevel: true,
   }
 ) {
@@ -49,8 +32,16 @@ function createLogger(
 
   return new Proxy(
     console,
-    createHandler(options.level, bindArgs, options.applyCallback)
+    createHandler(options.level, bindArgs, options.tap, localStorage)
   );
+}
+
+function getDefaultLevel(): LogMethod {
+  return (localStorage.getItem(STORAGE_KEY) ?? "trace") as LogMethod;
+}
+
+function setDefaultLevel(level: LogMethod) {
+  localStorage.setItem(STORAGE_KEY, level);
 }
 
 export { createLogger, log, getDefaultLevel, setDefaultLevel };
