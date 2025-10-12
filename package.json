@@ -1,52 +1,30 @@
 {
   "name": "@cyca/log",
-  "version": "0.0.3",
-  "description": "Yet another logger for JavaScript",
-  "sideEffects": true,
+  "version": "0.1.0",
+  "description": "A simple logging library",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/server.js",
+  "module": "./dist/server.js",
+  "types": "./dist/server.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "default": "./browser.js",
-      "node": "./index.js"
-    }
+      "browser": "./dist/browser.js",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./server": "./dist/server.js",
+    "./browser": "./dist/browser.js",
+    "./package.json": "./package.json"
   },
-  "files": [
-    "**"
-  ],
   "scripts": {
-    "type-check": "tsc",
-    "build": "bun run rm -rf dist && env NODE_ENV=production tsup",
-    "build:watch": "tsup --watch",
-    "postbuild": "bun run cp package.json readme.md LICENSE dist && json -I -f dist/package.json -e \"this.devDependencies=undefined; this.optionalDependencies=undefined; this.scripts=undefined;\"",
-    "publish": "cd dist && npm publish --access public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cvpcasada/log.git"
-  },
-  "keywords": [
-    "console",
-    "logger",
-    "typescript"
-  ],
-  "author": "Cyrus Venn Casada <cvpcasada@outlook.com>",
-  "license": "MIT",
-  "dependencies": {
-    "chalk": "^5.3.0",
-    "is-unicode-supported": "^2.0.0"
+    "build": "tsdown",
+    "dev": "tsdown --watch"
   },
   "devDependencies": {
-    "@types/node": "^20.4.8",
-    "bun-types": "latest",
-    "json": "^11.0.0",
-    "tsup": "^v8.0.2",
-    "typescript": "^5.4.5"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "publishConfig": {
-    "access": "public"
+    "@types/node": "^24.7.2",
+    "tsdown": "latest"
   }
 }

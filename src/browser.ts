@@ -1,47 +1,58 @@
-import { log, createHandler, type LogMethod, STORAGE_KEY } from "./common.js";
-import { main as symbols } from "./symbols.js";
-const ColorMap = {
+import {
+  Logger,
+  createProxy,
+  type LoggerInstance, type LogMethod,
+  LoggerOptions
+} from "./logger";
+
+class LSStorage {
+  get(key: string) {
+    return localStorage.getItem(key);
+  }
+  set(key: string, value: string) {
+    localStorage.setItem(key, value);
+  }
+  del(key: string) {
+    localStorage.removeItem(key);
+  }
+}
+
+const colors: Record<LogMethod, string> = {
   trace: "#95bdb7",
   debug: "#ad95b8",
   info: "#b6bd73",
-  log: "#88a1bb",
-  warn: "#e9c880",
+  warn: "#88a1bb",
   error: "#bf6c69",
-} as { readonly [key in LogMethod]: string };
+};
 
-function createLogger(
-  name: string,
-  options: {
-    level?: LogMethod;
-    tap?: (
-      method: LogMethod,
-      args: Parameters<(typeof console)[LogMethod]>
-    ) => void;
-    showLevel?: boolean;
-  } = {
-    level: getDefaultLevel(),
-    showLevel: true,
-  }
-) {
-  // todo: check if we can have a global here and if a bundler tree shakes it
-  let bindArgs = (level: LogMethod) => [
-    `%c${options.showLevel ? symbols[level] : ""} ${name}:%c`,
-    `color: ${ColorMap[level]}; font-weight: bold;`,
-    `color: inherit;`,
-  ];
+const symbols = {
+  info: "⚡️",
+  success: "✔",
+  warn: "▲",
+  error: "✖",
+  log: "●",
+  trace: "◔",
+  debug: "◌",
+} as const;
 
-  return new Proxy(
-    console,
-    createHandler(options.level, bindArgs, options.tap, localStorage)
-  );
-}
+const env = {
+  bind(consoleImpl, method, name) {
+    const prefix = name
+      ? `${symbols[method]} ${String(name)}:`
+      : `${symbols[method]}`;
 
-function getDefaultLevel(): LogMethod {
-  return (localStorage.getItem(STORAGE_KEY) ?? "trace") as LogMethod;
-}
+    const real = consoleImpl[method] || consoleImpl.log;
+    return real.bind(
+      consoleImpl,
+      `%c${prefix}%c`,
+      `color: ${colors[method]}; font-weight: bold;`,
+      "color: inherit"
+    );
+  },
+} as const satisfies LoggerOptions;
 
-function setDefaultLevel(level: LogMethod) {
-  localStorage.setItem(STORAGE_KEY, level);
-}
+export const log: LoggerInstance = createProxy(
+  new Logger(new LSStorage(), env)
+);
 
-export { createLogger, log, getDefaultLevel, setDefaultLevel };
+export type { LogLevel } from "./logger";
