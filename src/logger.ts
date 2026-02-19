@@ -115,6 +115,7 @@ export class Logger {
     this.e = opts;
     this.n = name;
     this.r = root;
+    if (root) this.c = root.c;
     this.bindMethods();
   }
 
