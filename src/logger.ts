@@ -1,10 +1,18 @@
-export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
-export type LogMethod = "trace" | "debug" | "info" | "warn" | "error";
+export type LogLevel =
+  | "trace"
+  | "debug"
+  | "info"
+  | "warn"
+  | "log"
+  | "error"
+  | "silent";
+export type LogMethod = "trace" | "debug" | "info" | "log" | "warn" | "error";
 
 export const COLORS: Record<LogMethod, string> = {
   trace: "\x1b[90m",
   debug: "\x1b[34m",
   info: "\x1b[32m",
+  log: "\x1b[90m",
   warn: "\x1b[33m",
   error: "\x1b[31m",
 };
@@ -62,6 +70,19 @@ export function createEnv(
   };
 }
 
+function simpleEnv(): LoggerOptions {
+  return {
+    bind(consoleImpl, method, name) {
+      const prefix = name
+        ? `${FALLBACK_SYMBOLS[method]} ${String(name)}:`
+        : `${FALLBACK_SYMBOLS[method]}`;
+
+      const real = consoleImpl[method] || consoleImpl.log;
+      return real.bind(consoleImpl, prefix);
+    },
+  };
+}
+
 export class MemStorage implements IStorage {
   private m = new Map<string, string>();
 
@@ -81,13 +102,14 @@ export class MemStorage implements IStorage {
 const LEVEL_TO_NUM: Record<LogLevel, number> = {
   trace: 0,
   debug: 1,
-  info: 2,
-  warn: 3,
-  error: 4,
-  silent: 5,
+  log: 2,
+  info: 3,
+  warn: 4,
+  error: 5,
+  silent: 6,
 };
 
-const M: LogMethod[] = ["trace", "debug", "info", "warn", "error"];
+const M: LogMethod[] = ["trace", "debug", "log", "info", "warn", "error"];
 
 export class Logger {
   private s: IStorage; // storage
@@ -108,6 +130,7 @@ export class Logger {
   constructor(
     storage: IStorage,
     opts: LoggerOptions,
+    c?: Console,
     name?: string | symbol,
     root?: Logger,
   ) {
@@ -115,7 +138,7 @@ export class Logger {
     this.e = opts;
     this.n = name;
     this.r = root;
-    if (root) this.c = root.c;
+    if (c) this.c = c;
     this.bindMethods();
   }
 
@@ -160,6 +183,12 @@ export class Logger {
     return this;
   }
 
+  setConfig(config: LoggerOptions): Logger {
+    this.e = config;
+    this.bindMethods();
+    return this;
+  }
+
   setDefaultLevel(level: LogLevel): Logger {
     if (!this.s.get(this.storageKey())) {
       this.def = level;
@@ -177,7 +206,7 @@ export class Logger {
     if (!name) throw new Error("Logger name required");
 
     if (!this.ls.has(name)) {
-      const child = new Logger(this.s, this.e, name, this.r || this);
+      const child = new Logger(this.s, this.e, this.c, name, this.r || this);
       this.ls.set(name, createProxy(child));
     }
 
@@ -192,9 +221,16 @@ export class Logger {
     return result;
   }
 
-  use(consoleImpl: Console): void {
+  use(consoleImpl: Console): Logger {
     this.c = consoleImpl;
     this.bindMethods();
+    return this;
+  }
+
+  useSimple(): Logger {
+    this.e = simpleEnv();
+    this.bindMethods();
+    return this;
   }
 }
 

@@ -6,6 +6,7 @@ export default defineConfig({
     browser: './src/browser.ts',
   },
   platform: 'neutral',
+  tsconfig: './tsconfig.json',
   dts: {
     oxc: true,
   },

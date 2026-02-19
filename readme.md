@@ -51,11 +51,12 @@ log.error('Something went wrong');
 
 ## Log Levels
 
-The library supports six log levels:
+The library supports seven log levels:
 
 - `trace` - Most verbose, typically for debugging
 - `debug` - Debug information
-- `info` - General information (default)
+- `log` - Generic logging
+- `info` - General information
 - `warn` - Warning messages
 - `error` - Error messages
 - `silent` - Disable all logging
@@ -65,6 +66,7 @@ import { log } from '@cyca/log';
 
 log.trace('Detailed debugging info');
 log.debug('Debug information');
+log.log('General log output');
 log.info('General information');
 log.warn('Warning message');
 log.error('Error message');
@@ -164,6 +166,7 @@ class Logger {
   // Log methods (automatically bound based on level)
   trace(...args: any[]): void
   debug(...args: any[]): void
+  log(...args: any[]): void
   info(...args: any[]): void
   warn(...args: any[]): void
   error(...args: any[]): void
@@ -179,8 +182,18 @@ class Logger {
 
   // Console management
   use(consoleImpl: Console): void
+
+  // Formatter/config management
+  setConfig(config: LoggerOptions): this
+  useSimple(): this
 }
 ```
+
+### Newly Added APIs
+
+- `setConfig(config: LoggerOptions)` - Replaces the active bind/format strategy.
+- `useSimple()` - Switches to a plain fallback formatter (ASCII-friendly prefixes).
+- `log.log(...args)` - Generic log method with its own `log` level threshold.
 
 ## License
 

@@ -1,6 +1,6 @@
 {
   "name": "@cyca/log",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "A simple logging library",
   "type": "module",
   "files": [
@@ -21,10 +21,13 @@
   },
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/node": "^24.7.2",
-    "tsdown": "latest"
+    "bun-types": "^1.3.9",
+    "tsdown": "latest",
+    "typescript": "^5.9.3"
   }
 }
