@@ -1,16 +1,35 @@
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
 export type LogMethod = "trace" | "debug" | "info" | "warn" | "error";
 
-const LEVEL_TO_NUM: Record<LogLevel, number> = {
-  trace: 0,
-  debug: 1,
-  info: 2,
-  warn: 3,
-  error: 4,
-  silent: 5,
+export const COLORS: Record<LogMethod, string> = {
+  trace: "\x1b[90m",
+  debug: "\x1b[34m",
+  info: "\x1b[32m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
 };
 
-const M: LogMethod[] = ["trace", "debug", "info", "warn", "error"];
+export const UNICODE_SYMBOLS = {
+  info: "⚡️",
+  success: "✔",
+  warn: "▲",
+  error: "✖",
+  log: "●",
+  trace: "◔",
+  debug: "◌",
+} as const satisfies Record<LogMethod | "log" | "success", string>;
+
+export const FALLBACK_SYMBOLS = {
+  info: "i",
+  success: "√",
+  warn: "‼",
+  error: "×",
+  log: "•",
+  trace: "»",
+  debug: "*",
+} as const satisfies Record<LogMethod | "log" | "success", string>;
+
+export type SymbolSet = Record<LogMethod | "log" | "success", string>;
 
 export interface IStorage {
   get(key: string): string | null;
@@ -22,9 +41,53 @@ export interface LoggerOptions {
   bind: (
     consoleImpl: Console,
     method: LogMethod,
-    name: string | symbol | undefined
+    name: string | symbol | undefined,
   ) => (...args: any[]) => void;
 }
+
+export function createEnv(
+  symbols: SymbolSet,
+  colors: Record<LogMethod, string>,
+): LoggerOptions {
+  return {
+    bind(consoleImpl, method, name) {
+      const prefix = name
+        ? `${symbols[method]} ${String(name)}:`
+        : `${symbols[method]}`;
+
+      const real = consoleImpl[method] || consoleImpl.log;
+      const styled = `${colors[method]}${prefix}\x1b[0m`;
+      return real.bind(consoleImpl, styled);
+    },
+  };
+}
+
+export class MemStorage implements IStorage {
+  private m = new Map<string, string>();
+
+  get(key: string): string | null {
+    return this.m.get(key) ?? null;
+  }
+
+  set(key: string, value: string): void {
+    this.m.set(key, value);
+  }
+
+  del(key: string): void {
+    this.m.delete(key);
+  }
+}
+
+const LEVEL_TO_NUM: Record<LogLevel, number> = {
+  trace: 0,
+  debug: 1,
+  info: 2,
+  warn: 3,
+  error: 4,
+  silent: 5,
+};
+
+const M: LogMethod[] = ["trace", "debug", "info", "warn", "error"];
 
 export class Logger {
   private s: IStorage; // storage
@@ -46,7 +109,7 @@ export class Logger {
     storage: IStorage,
     opts: LoggerOptions,
     name?: string | symbol,
-    root?: Logger
+    root?: Logger,
   ) {
     this.s = storage;
     this.e = opts;

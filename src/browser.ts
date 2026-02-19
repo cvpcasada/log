@@ -1,11 +1,23 @@
 import {
   Logger,
   createProxy,
-  type LoggerInstance, type LogMethod,
-  LoggerOptions
+  MemStorage,
+  createEnv,
+  type LoggerInstance,
+  type IStorage,
+  LogMethod,
+  UNICODE_SYMBOLS,
 } from "./logger";
 
-class LSStorage {
+const COLORS: Record<LogMethod, string> = {
+  trace: "\x1b[38;2;149;189;183m", // #95bdb7
+  debug: "\x1b[38;2;173;149;184m", // #ad95b8
+  info: "\x1b[38;2;182;189;115m", // #b6bd73
+  warn: "\x1b[38;2;136;161;187m", // #88a1bb
+  error: "\x1b[38;2;191;108;105m", // #bf6c69
+};
+
+class LSStorage implements IStorage {
   get(key: string) {
     return localStorage.getItem(key);
   }
@@ -17,42 +29,11 @@ class LSStorage {
   }
 }
 
-const colors: Record<LogMethod, string> = {
-  trace: "#95bdb7",
-  debug: "#ad95b8",
-  info: "#b6bd73",
-  warn: "#88a1bb",
-  error: "#bf6c69",
-};
-
-const symbols = {
-  info: "⚡️",
-  success: "✔",
-  warn: "▲",
-  error: "✖",
-  log: "●",
-  trace: "◔",
-  debug: "◌",
-} as const;
-
-const env = {
-  bind(consoleImpl, method, name) {
-    const prefix = name
-      ? `${symbols[method]} ${String(name)}:`
-      : `${symbols[method]}`;
-
-    const real = consoleImpl[method] || consoleImpl.log;
-    return real.bind(
-      consoleImpl,
-      `%c${prefix}%c`,
-      `color: ${colors[method]}; font-weight: bold;`,
-      "color: inherit"
-    );
-  },
-} as const satisfies LoggerOptions;
+const storage: IStorage =
+  typeof localStorage !== "undefined" ? new LSStorage() : new MemStorage();
 
 export const log: LoggerInstance = createProxy(
-  new Logger(new LSStorage(), env)
+  new Logger(storage, createEnv(UNICODE_SYMBOLS, COLORS)),
 );
 
 export type { LogLevel } from "./logger";

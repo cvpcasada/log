@@ -1,23 +1,13 @@
 import {
   Logger,
   createProxy,
+  MemStorage,
+  createEnv,
+  UNICODE_SYMBOLS,
+  FALLBACK_SYMBOLS,
   type LoggerInstance,
-  type LogMethod,
-  LoggerOptions,
+  COLORS,
 } from "./logger";
-
-class MemStorage {
-  private data: Record<string, string> = {};
-  get(key: string) {
-    return this.data[key] ?? null;
-  }
-  set(key: string, value: string) {
-    this.data[key] = value;
-  }
-  del(key: string) {
-    delete this.data[key];
-  }
-}
 
 function isUnicodeSupported() {
   const { env } = process;
@@ -41,50 +31,10 @@ function isUnicodeSupported() {
   );
 }
 
-const colors: Record<LogMethod, string> = {
-  trace: "\x1b[90m",
-  debug: "\x1b[34m",
-  info: "\x1b[32m",
-  warn: "\x1b[33m",
-  error: "\x1b[31m",
-};
-
-const fallbackSymbols = {
-  info: "i",
-  success: "√",
-  warn: "‼",
-  error: "×",
-  log: "•",
-  trace: "»",
-  debug: "*",
-} as const satisfies Record<LogMethod | "log" | "success", string>;
-
-const unicodeSymbols = {
-  info: "⚡️",
-  success: "✔",
-  warn: "▲",
-  error: "✖",
-  log: "●",
-  trace: "◔",
-  debug: "◌",
-} as const satisfies Record<LogMethod | "log" | "success", string>;
-
-let symbols = isUnicodeSupported() ? unicodeSymbols : fallbackSymbols;
-
-const env = {
-  bind(consoleImpl, method, name) {
-    const prefix = name
-      ? `${symbols[method]} ${String(name)}:`
-      : `${symbols[method]}`;
-
-    const real = consoleImpl[method] || consoleImpl.log;
-    const styled = `${colors[method]}${prefix}\x1b[0m`;
-    return real.bind(consoleImpl, styled);
-  },
-} as const satisfies LoggerOptions;
+const symbols = isUnicodeSupported() ? UNICODE_SYMBOLS : FALLBACK_SYMBOLS;
 
 export const log: LoggerInstance = createProxy(
-  new Logger(new MemStorage(), env)
+  new Logger(new MemStorage(), createEnv(symbols, COLORS)),
 );
 
 export type { LogLevel } from "./logger";
